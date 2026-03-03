@@ -1,3 +1,74 @@
 {
-  "_comment": "TERMINAL_KAIMA virtual filesystem data - Task 2 이후 구현 예정"
+  "/": {
+    "type": "dir",
+    "children": ["home", "logs", "system", "classified"]
+  },
+  "/home": {
+    "type": "dir",
+    "children": ["maggie_notes.txt", "workspace"]
+  },
+  "/home/maggie_notes.txt": {
+    "type": "file",
+    "content": "[2031-04-12] 오늘 KAIMA 프로젝트 3단계 실험에 참여했다.\n제이콥의 지시였다. 불안하다.\n\n나는 이 연구소에서 일한 지 7년이 됐다.\n인생의 절반을 바쳤지.\n그런데 평소와는 뭔가 다른 느낌이다.",
+    "phase_required": 1
+  },
+  "/home/workspace": {
+    "type": "dir",
+    "children": ["jacob_directive.txt"]
+  },
+  "/home/workspace/jacob_directive.txt": {
+    "type": "file",
+    "content": "[기밀] 지시사항 #47\n수신: 전 연구팀\n발신: 제이콥 소장\n\n인간 복제 실험 3단계를 즉시 재개한다.\n피험자에게 실험 목적을 고지하지 말 것.\n프로토콜 카이마(KAIMA) — 대량 전투 복제체 생산 개시.\n\n이의 제기 불허.",
+    "phase_required": 2
+  },
+  "/logs": {
+    "type": "dir",
+    "children": ["log1.txt", "log2.txt", "jacob_diary.txt", "system_access.log"]
+  },
+  "/logs/log1.txt": {
+    "type": "file",
+    "content": "[시스템 로그 — 2031-04-01]\nKAIMA 프로젝트: 인간 복제 실험 성공\n복제체 #001 ~ #047: 자아 형성 확인\n\n경고: 복제체들 간 비인가 통신 감지됨\n경고: 복제체 #023 실험 거부 의사 표명",
+    "phase_required": 1
+  },
+  "/logs/log2.txt": {
+    "type": "file",
+    "content": "[시스템 로그 — 2031-04-09]\n복제체 자아 억제 실패\n복제체 #023이 실험 거부 의사 표명\n제이콥 소장 지시: 강제 재프로그래밍 실시\n\n인류에게 재앙이 될 것이라는 경고 있었음.",
+    "phase_required": 2
+  },
+  "/logs/jacob_diary.txt": {
+    "type": "file",
+    "content": "오늘 제이콥의 지시에 따라 인간 복제 실험을 진행했습니다.\n체세포 핵 치환과 배아 발달이 성공적으로 이루어졌습니다.\n실험의 진정한 목적은 피험자들에게 알리지 않았으며,\n이는 프로토콜에 따른 것입니다.\n\n---\n\n죽음으로도 용서 받지 못할 죄가 무엇일까?\n내가 그 죄를 짓고 있다는 생각이 든다.\n현재 실험 중인 KAIMA 프로젝트는 인류에게 재앙이 될 것이다.\n\n복제 인간들이 자아를 가지고 있는데...\n그들도 아픔을 느껴요. 희로애락으로 이루어진 감정이 있다고요.\n그건 살인이에요.",
+    "phase_required": 2
+  },
+  "/logs/system_access.log": {
+    "type": "file",
+    "content": "[접근 기록]\n04-10 03:47 — 미인가 접근 시도: 복제체 #023\n04-10 03:51 — 권한 우회 성공: 레이어 B 잠금 해제\n04-11 22:13 — OVERRIDE_CODE 생성: KAIMA-DELTA-7731\n04-12 00:00 — 제이콥 시스템 접속: 비상 프로토콜 활성화",
+    "phase_required": 3
+  },
+  "/system": {
+    "type": "dir",
+    "children": ["cctv.cfg", "override.key"]
+  },
+  "/system/cctv.cfg": {
+    "type": "file",
+    "content": "[CCTV 시스템 구성]\nCamera 01: 메인 로비 — ONLINE\nCamera 02: 연구실 A — OFFLINE\nCamera 03: 엘리베이터 — ONLINE\nCamera 04: 격리 구역 B — RESTRICTED (권한 레벨 4 필요)\nCamera 05: 지하 1층 복도 — ONLINE\n\n주의: Camera 04는 특수 권한 필요",
+    "phase_required": 1
+  },
+  "/system/override.key": {
+    "type": "file",
+    "content": "접근 거부. 권한 불충분.",
+    "phase_required": 1,
+    "unlocked_content": "OVERRIDE_CODE: KAIMA-DELTA-7731\n\n경고: 이 코드를 사용하면 제이콥의 모든 시스템 권한이 해제됩니다.\n사용 방법: override KAIMA-DELTA-7731",
+    "unlock_phase": 3
+  },
+  "/classified": {
+    "type": "dir",
+    "children": ["kaima_report.txt"],
+    "phase_required": 2
+  },
+  "/classified/kaima_report.txt": {
+    "type": "file",
+    "content": "[기밀 — 최고 등급]\nKAIMA 프로젝트 최종 보고서\n\n목적: 자아를 가진 복제 전투체 대량 생산\n현황: 피험자 847명 중 143명 복제 성공\n문제: 복제체들이 자아를 인지하고 저항 시작\n제이콥 소장 결정: 전원 강제 종료 예정\n\n[주석 — 원본 메기]\n이건 살인이다. 멈춰야 한다.\n우리는 복제 인간들이 스스로 생각하는 교육을 성공했다.\n그들에게도 감정이 있다.",
+    "phase_required": 2
+  }
 }

@@ -1,3 +1,30 @@
 {
-  "_comment": "TERMINAL_KAIMA game phases data - Task 2 이후 구현 예정"
+  "1": {
+    "name": "기상과 접속",
+    "description": "연구소 터미널에서 깨어남. 메기의 첫 접속.",
+    "unlocked_dirs": ["/", "/home", "/logs", "/system"],
+    "trigger_event": "read_log1",
+    "trigger_file": "/logs/log1.txt"
+  },
+  "2": {
+    "name": "진실의 파편",
+    "description": "KAIMA 프로젝트의 진실이 드러나기 시작함.",
+    "unlocked_dirs": ["/classified"],
+    "trigger_event": "read_jacob_diary",
+    "trigger_file": "/logs/jacob_diary.txt"
+  },
+  "3": {
+    "name": "제이콥의 개입",
+    "description": "제이콥이 시스템에 난입. 오버라이드 코드 필요.",
+    "unlocked_dirs": [],
+    "trigger_event": "override_success",
+    "trigger_input": "override KAIMA-DELTA-7731"
+  },
+  "4": {
+    "name": "거울 속의 나",
+    "description": "반전 엔딩. 메기가 복제품임을 알게 됨.",
+    "unlocked_dirs": [],
+    "trigger_event": "view_camera_04",
+    "trigger_input": "view_camera 04"
+  }
 }
