@@ -4,17 +4,66 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TERMINAL_KAIMA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- TERMINAL_KAIMA: Task 2 이후 구현 예정 -->
-  <div id="app"></div>
+  <div class="crt-wrapper">
+    <!-- CRT 스캔라인 오버레이 -->
+    <div class="scanlines" aria-hidden="true"></div>
 
-  <script src="js/gamestate.js"></script>
-  <script src="js/filesystem.js"></script>
-  <script src="js/effects.js"></script>
-  <script src="js/terminal.js"></script>
-  <script src="js/chat.js"></script>
-  <script src="js/main.js"></script>
+    <!-- 메인 터미널 레이아웃 -->
+    <div class="terminal-container" id="terminal-container">
+
+      <!-- 상단: 시스템 콘솔 (70%) -->
+      <section class="console-panel" aria-label="시스템 콘솔">
+        <div class="panel-header">
+          <span class="blink" aria-hidden="true">&#9654;</span>
+          <span>KAIMA_RESEARCH_FACILITY &#8212; TERMINAL v2.7.1</span>
+          <span class="phase-indicator" id="phase-indicator">PHASE I</span>
+        </div>
+        <div class="console-output" id="console-output" role="log" aria-live="polite" aria-label="터미널 출력"></div>
+        <div class="console-input-row">
+          <span class="prompt" id="prompt-text">KAIMA:/home$</span>
+          <input
+            type="text"
+            id="console-input"
+            class="console-input"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            aria-label="터미널 명령어 입력"
+          >
+        </div>
+      </section>
+
+      <!-- 하단: 메기 채팅창 (30%) -->
+      <section class="chat-panel" aria-label="메기 채팅">
+        <div class="panel-header">
+          <span class="status-dot blink" aria-hidden="true">&#9679;</span>
+          <span>EXTERNAL_COMM &#8212; [MAGGIE]</span>
+          <span class="connection-status" id="connection-status">CONNECTED</span>
+        </div>
+        <div class="chat-output" id="chat-output" role="log" aria-live="polite" aria-label="메기 채팅 출력"></div>
+        <div class="chat-input-row">
+          <span class="chat-prompt" aria-hidden="true">[YOU]&gt;</span>
+          <input
+            type="text"
+            id="chat-input"
+            class="chat-input"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            aria-label="메기에게 메시지 입력"
+            placeholder="메기에게 메시지를 입력하세요..."
+          >
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
