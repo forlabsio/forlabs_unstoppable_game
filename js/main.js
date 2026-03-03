@@ -5,7 +5,7 @@ import { loadFilesystem, getCurrentPath } from './filesystem.js';
 import { executeCommand } from './terminal.js';
 import { initChat, maggieSay } from './chat.js';
 import { getCurrentPhase, onPhaseChange } from './gamestate.js';
-import { typewrite, printLine, printChatLine } from './effects.js';
+import { typewrite, printLine, printChatLine, stopAllTypewriters } from './effects.js';
 
 // ===== DOM 요소 =====
 const consoleOutput  = document.getElementById("console-output");
@@ -169,6 +169,7 @@ function handlePhaseChange({ from, to, intro, isEnding }) {
 
 // ===== 제이콥 타이머 (Phase 3) =====
 function startJacobTimer() {
+  if (jacobTimerId !== null) return; // 중복 실행 방지
   let remaining = 300; // 5분
 
   jacobTimerId = setInterval(() => {
@@ -204,6 +205,7 @@ function clearJacobTimer() {
 async function triggerEnding() {
   consoleInput.disabled = true;
   chatInput.disabled = true;
+  stopAllTypewriters(); // 진행 중인 타이프라이터 체인 모두 중단
 
   await delay(1000);
   maggieSay("멍청아, 이해가 안되니? 난 너의 복제품 중 하나야.");

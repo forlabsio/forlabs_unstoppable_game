@@ -79,8 +79,9 @@ export function executeCommand(rawInput, outputCallback) {
       if (result.error) {
         outputCallback(`오류: ${result.error}`);
       } else {
-        const header = `${result.path || getCurrentPath()}:`;
-        outputCallback(header + "\n" + (result.entries.length ? result.entries.join("  ") : "(비어있음)"));
+        // 인자 지정 시에만 경로 헤더 표시 (인자 없으면 현재 위치이므로 생략)
+        const lines = args[0] ? `${result.path}:\n` : "";
+        outputCallback(lines + (result.entries.length ? result.entries.join("  ") : "(비어있음)"));
       }
       break;
     }

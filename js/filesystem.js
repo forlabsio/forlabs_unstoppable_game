@@ -49,7 +49,7 @@ export function changeDir(path) {
 }
 
 export function resolvePath(input) {
-  if (!input || input === "~") return "/home";
+  if (!input || input === "~") return _currentPath;
   if (input.startsWith("/")) return input;
   if (input === "..") {
     const parts = _currentPath.split("/").filter(Boolean);

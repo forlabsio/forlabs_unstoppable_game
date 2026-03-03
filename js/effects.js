@@ -2,6 +2,11 @@
 // CRT 터미널 시각 효과 유틸리티
 
 const TYPEWRITER_SPEED_MS = 15; // 글자당 ms
+let _typewriterActive = true; // false로 설정하면 진행 중인 타이프라이터 모두 중단
+
+export function stopAllTypewriters() {
+  _typewriterActive = false;
+}
 
 /**
  * 텍스트를 타이프라이터 효과로 DOM 요소에 출력합니다.
@@ -19,6 +24,7 @@ export function typewrite(container, text, cssClass = "system") {
 
     let i = 0;
     const tick = () => {
+      if (!_typewriterActive) { resolve(); return; } // 중단 신호 시 즉시 종료
       if (i < text.length) {
         line.textContent += text[i++];
         scrollToBottom(container);

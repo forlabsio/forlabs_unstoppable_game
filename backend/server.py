@@ -1,7 +1,7 @@
 # backend/server.py
 """
 TERMINAL_KAIMA Flask 백엔드
-Qwen3.5-27B (via Ollama) 를 사용하여 메기 캐릭터 응답을 생성합니다.
+mlx_lm (Qwen3.5-9B-4bit) 또는 Ollama 를 사용하여 메기 캐릭터 응답을 생성합니다.
 """
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -12,55 +12,101 @@ from maggie import build_maggie_prompt
 app = Flask(__name__)
 CORS(app)
 
-# Ollama 설정
+# mlx_lm 서버 설정 (Qwen3.5-9B, OpenAI 호환 API)
+MLX_BASE_URL = "http://127.0.0.1:11435"
+MLX_MODEL = "mlx-community/Qwen3.5-9B-4bit"
+
+# Ollama 폴백 설정
 OLLAMA_BASE_URL = "http://localhost:11434"
-# 시스템에 설치된 모델명 (ollama list로 확인)
-# 우선순위: qwen3.5:27b > qwen3:27b > qwen2.5:7b > qwen2.5:3b
-DEFAULT_MODEL = "qwen3.5:27b"
 
 # 게임 세션 상태 (단일 플레이어 가정)
 session_state = {
     "phase": 1,
     "history": [],
-    "model": DEFAULT_MODEL
 }
 
 
-def get_available_model() -> str:
+def is_mlx_ready() -> bool:
+    """mlx_lm 서버가 준비됐는지 확인합니다."""
+    try:
+        resp = http_requests.get(f"{MLX_BASE_URL}/v1/models", timeout=2)
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+
+def get_ollama_model() -> str:
     """Ollama에서 사용 가능한 최적 Qwen 모델을 반환합니다."""
     try:
         resp = http_requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
         models = [m["name"] for m in resp.json().get("models", [])]
-
-        # 우선순위 순으로 확인
-        preferred = ["qwen3.5:27b", "qwen3:27b", "qwen3:8b", "qwen2.5:7b", "qwen2.5:3b", "qwen2.5:latest"]
+        preferred = ["qwen3:27b", "qwen3:8b", "qwen2.5:7b", "qwen2.5:3b", "qwen2.5:latest"]
         for p in preferred:
             if any(p in m for m in models):
                 return p
-
-        # 아무 Qwen 모델이나 반환
         qwen_models = [m for m in models if "qwen" in m.lower()]
-        if qwen_models:
-            return qwen_models[0]
-
-        return DEFAULT_MODEL
+        return qwen_models[0] if qwen_models else "qwen2.5:7b"
     except Exception:
-        return DEFAULT_MODEL
+        return "qwen2.5:7b"
+
+
+def call_mlx(prompt: str) -> str:
+    """mlx_lm OpenAI 호환 API 호출."""
+    resp = http_requests.post(
+        f"{MLX_BASE_URL}/v1/chat/completions",
+        json={
+            "model": MLX_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 200,
+            "temperature": 0.8,
+        },
+        timeout=90,
+    )
+    resp.raise_for_status()
+    reply = resp.json()["choices"][0]["message"]["content"].strip()
+    # thinking 태그 제거
+    if "<think>" in reply:
+        reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL).strip()
+    return reply
+
+
+def call_ollama(prompt: str, model: str) -> str:
+    """Ollama API 호출. qwen3 계열은 think:false 옵션으로 thinking 비활성화."""
+    is_qwen3 = "qwen3" in model and "qwen3.5" not in model
+    options = {"temperature": 0.8, "num_predict": 300, "stop": ["플레이어:", "플레이어 :"]}
+    if is_qwen3:
+        options["think"] = False
+
+    resp = http_requests.post(
+        f"{OLLAMA_BASE_URL}/api/generate",
+        json={
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "options": options,
+        },
+        timeout=90,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    reply = data.get("response", "").strip()
+    # <think> 태그 제거
+    if "<think>" in reply:
+        reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL).strip()
+    # "메기:" 접두어 제거
+    reply = re.sub(r"^메기\s*:\s*", "", reply).strip()
+    return reply
 
 
 @app.route("/health", methods=["GET"])
 def health():
-    model = get_available_model()
-    try:
-        resp = http_requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=3)
-        ollama_ok = resp.status_code == 200
-    except Exception:
-        ollama_ok = False
-
+    mlx_ready = is_mlx_ready()
+    active_model = MLX_MODEL if mlx_ready else get_ollama_model()
+    backend = "mlx_lm" if mlx_ready else "ollama"
     return jsonify({
         "status": "ok",
-        "model": model,
-        "ollama_connected": ollama_ok,
+        "model": active_model,
+        "backend": backend,
         "phase": session_state["phase"]
     })
 
@@ -80,39 +126,28 @@ def chat():
         user_msg=user_msg
     )
 
-    model = get_available_model()
-
     try:
-        resp = http_requests.post(
-            f"{OLLAMA_BASE_URL}/api/generate",
-            json={
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.8,
-                    "num_predict": 200,
-                    "stop": ["플레이어:", "플레이어 :"]
-                }
-            },
-            timeout=60
-        )
-        resp.raise_for_status()
-        reply = resp.json().get("response", "").strip()
-
-        # Thinking 모드 태그 제거 (<think>...</think>)
-        if "<think>" in reply:
-            reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL).strip()
+        # mlx_lm (Qwen3.5-9B) 우선 시도
+        if is_mlx_ready():
+            reply = call_mlx(prompt)
+            model = MLX_MODEL
+        else:
+            # Ollama 폴백
+            model = get_ollama_model()
+            reply = call_ollama(prompt, model)
 
         if not reply:
             reply = "...잠깐, 시스템이 불안정해요."
 
     except http_requests.exceptions.Timeout:
         reply = "...연결이 불안정해요. 다시 말해줘요."
+        model = "timeout"
     except http_requests.exceptions.ConnectionError:
-        reply = "시스템 오류: Ollama 서버에 연결할 수 없습니다. 'ollama serve'를 실행하세요."
-    except Exception as e:
+        reply = "시스템 오류: 백엔드 서버에 연결할 수 없습니다."
+        model = "disconnected"
+    except Exception:
         reply = "시스템 오류가 발생했어요."
+        model = "error"
 
     # 대화 히스토리 업데이트
     session_state["history"].append({"role": "user", "content": user_msg})
@@ -144,5 +179,6 @@ def reset():
 
 if __name__ == "__main__":
     print(f"TERMINAL_KAIMA Backend starting on port 5001...")
-    print(f"Using model: {get_available_model()}")
-    app.run(port=5001, debug=True)
+    model = MLX_MODEL if is_mlx_ready() else get_ollama_model()
+    print(f"Using model: {model}")
+    app.run(port=5001, debug=False)
