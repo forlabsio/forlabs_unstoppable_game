@@ -5,7 +5,7 @@ import { loadFilesystem, getCurrentPath } from './filesystem.js';
 import { executeCommand } from './terminal.js';
 import { initChat, maggieSay } from './chat.js';
 import { getCurrentPhase, onPhaseChange } from './gamestate.js';
-import { typewrite, printLine } from './effects.js';
+import { typewrite, printLine, printChatLine } from './effects.js';
 
 // ===== DOM 요소 =====
 const consoleOutput  = document.getElementById("console-output");
@@ -75,8 +75,7 @@ async function runBootSequence() {
 }
 
 // 채팅창에 타이프라이터 효과로 메시지 출력
-async function typewriteChatLine(text) {
-  const { printChatLine } = await import('./effects.js');
+function typewriteChatLine(text) {
   printChatLine(chatOutput, text, "maggie");
 }
 

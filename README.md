@@ -53,3 +53,8 @@ ollama pull qwen2.5:latest
 
 > **주의**: 현재 port 8000은 다른 서비스가 사용 중입니다.
 > Flask 백엔드 기본 포트를 5000으로 변경하거나, LLM 서버 포트를 조정하세요.
+
+## 주의사항
+
+- `index.html`을 브라우저에서 직접 열지 마세요 (CORS 오류 발생)
+- 반드시 HTTP 서버를 통해 실행하세요: `python3 -m http.server 8080`
