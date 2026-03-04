@@ -40,9 +40,9 @@ export function initChat(chatOutputEl, chatInputEl) {
 async function sendMessage(userText) {
   printChatLine(_chatOutput, userText, "player");
 
-  // 스트리밍 응답을 표시할 빈 말풍선 생성
+  // 스트리밍 응답을 표시할 빈 말풍선 생성 (커서 깜빡임 포함)
   const replyDiv = document.createElement("div");
-  replyDiv.className = "chat-line maggie";
+  replyDiv.className = "chat-line maggie streaming";
   _chatOutput.appendChild(replyDiv);
   _chatOutput.scrollTop = _chatOutput.scrollHeight;
 
@@ -72,12 +72,14 @@ async function sendMessage(userText) {
         if (!line.startsWith("data: ")) continue;
         const payload = JSON.parse(line.slice(6));
         if (payload.token) {
+          replyDiv.classList.remove("streaming");
           replyDiv.textContent += payload.token;
           _chatOutput.scrollTop = _chatOutput.scrollHeight;
         }
       }
     }
 
+    replyDiv.classList.remove("streaming");
     // 응답이 비어있으면 폴백
     if (!replyDiv.textContent.trim()) {
       replyDiv.textContent = FALLBACK_RESPONSES[_fallbackIdx % FALLBACK_RESPONSES.length];
@@ -85,6 +87,7 @@ async function sendMessage(userText) {
     }
 
   } catch (_err) {
+    replyDiv.classList.remove("streaming");
     if (!replyDiv.textContent.trim()) {
       replyDiv.textContent = FALLBACK_RESPONSES[_fallbackIdx % FALLBACK_RESPONSES.length];
       _fallbackIdx++;

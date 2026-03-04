@@ -231,6 +231,14 @@ html, body {
   font-size: 0.78rem;
 }
 
+/* 스트리밍 중 깜빡이는 커서 */
+.chat-line.maggie.streaming::after {
+  content: "▋";
+  animation: blink 0.8s step-end infinite;
+  color: var(--green);
+  margin-left: 1px;
+}
+
 /* ===== 입력 영역 ===== */
 .console-input-row,
 .chat-input-row {
