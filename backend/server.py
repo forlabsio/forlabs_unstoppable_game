@@ -3,9 +3,10 @@
 TERMINAL_KAIMA Flask 백엔드
 mlx_lm (Qwen3.5-9B-4bit) 또는 Ollama 를 사용하여 메기 캐릭터 응답을 생성합니다.
 """
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 import re
+import json
 import requests as http_requests
 from maggie import build_maggie_prompt
 
@@ -125,38 +126,73 @@ def chat():
         history=session_state["history"],
         user_msg=user_msg
     )
+    model = get_ollama_model()
+    is_qwen3 = "qwen3" in model and "qwen3.5" not in model
+    options = {"temperature": 0.8, "num_predict": 300, "stop": ["플레이어:", "플레이어 :"]}
+    if is_qwen3:
+        options["think"] = False
 
-    try:
-        # mlx_lm (Qwen3.5-9B) 우선 시도
-        if is_mlx_ready():
-            reply = call_mlx(prompt)
-            model = MLX_MODEL
-        else:
-            # Ollama 폴백
-            model = get_ollama_model()
-            reply = call_ollama(prompt, model)
+    def generate():
+        full_reply = ""
+        in_think = False
+        prefix_buf = ""   # 앞부분 토큰을 모아 접두어 감지
+        prefix_done = False
+        try:
+            with http_requests.post(
+                f"{OLLAMA_BASE_URL}/api/generate",
+                json={"model": model, "prompt": prompt, "stream": True, "options": options},
+                stream=True,
+                timeout=90,
+            ) as resp:
+                resp.raise_for_status()
+                for line in resp.iter_lines():
+                    if not line:
+                        continue
+                    chunk = json.loads(line)
+                    token = chunk.get("response", "")
 
-        if not reply:
-            reply = "...잠깐, 시스템이 불안정해요."
+                    # <think> 태그 필터링
+                    if "<think>" in token:
+                        in_think = True
+                    if in_think:
+                        if "</think>" in token:
+                            in_think = False
+                        continue
 
-    except http_requests.exceptions.Timeout:
-        reply = "...연결이 불안정해요. 다시 말해줘요."
-        model = "timeout"
-    except http_requests.exceptions.ConnectionError:
-        reply = "시스템 오류: 백엔드 서버에 연결할 수 없습니다."
-        model = "disconnected"
-    except Exception:
-        reply = "시스템 오류가 발생했어요."
-        model = "error"
+                    # 첫 10자 안에서 "메기:" 접두어 제거
+                    if not prefix_done:
+                        prefix_buf += token
+                        if len(prefix_buf) >= 10 or chunk.get("done"):
+                            prefix_buf = re.sub(r"^메기\s*:\s*", "", prefix_buf)
+                            prefix_done = True
+                            token = prefix_buf
+                            prefix_buf = ""
+                        else:
+                            if chunk.get("done"):
+                                break
+                            continue
 
-    # 대화 히스토리 업데이트
-    session_state["history"].append({"role": "user", "content": user_msg})
-    session_state["history"].append({"role": "assistant", "content": reply})
-    # 히스토리 최대 20개 유지
-    if len(session_state["history"]) > 20:
-        session_state["history"] = session_state["history"][-20:]
+                    if token:
+                        full_reply += token
+                        yield f"data: {json.dumps({'token': token})}\n\n"
 
-    return jsonify({"reply": reply, "phase": phase, "model": model})
+                    if chunk.get("done"):
+                        break
+
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            full_reply = "...연결이 불안정해요."
+
+        # 히스토리 저장
+        session_state["history"].append({"role": "user", "content": user_msg})
+        session_state["history"].append({"role": "assistant", "content": full_reply.strip()})
+        if len(session_state["history"]) > 20:
+            session_state["history"] = session_state["history"][-20:]
+        yield f"data: {json.dumps({'done': True, 'model': model})}\n\n"
+
+    return Response(stream_with_context(generate()), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
 
 
 @app.route("/phase", methods=["POST"])

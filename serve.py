@@ -12,6 +12,6 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
         pass  # 로그 억제
 
 if __name__ == "__main__":
-    server = HTTPServer(("", 8080), NoCacheHandler)
-    print("Serving on http://localhost:8080 (no-cache)")
+    server = HTTPServer(("", 3000), NoCacheHandler)
+    print("Serving on http://localhost:3000 (no-cache)")
     server.serve_forever()

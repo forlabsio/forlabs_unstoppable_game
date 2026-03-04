@@ -34,34 +34,61 @@ export function initChat(chatOutputEl, chatInputEl) {
 }
 
 /**
- * 메기에게 메시지를 전송하고 응답을 표시합니다.
+ * 메기에게 메시지를 전송하고 스트리밍으로 응답을 표시합니다.
  * @param {string} userText
  */
 async function sendMessage(userText) {
   printChatLine(_chatOutput, userText, "player");
-  showThinking(_chatOutput);
+
+  // 스트리밍 응답을 표시할 빈 말풍선 생성
+  const replyDiv = document.createElement("div");
+  replyDiv.className = "chat-line maggie";
+  _chatOutput.appendChild(replyDiv);
+  _chatOutput.scrollTop = _chatOutput.scrollHeight;
 
   try {
     const resp = await fetch(`${BACKEND_URL}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: userText,
-        phase: getCurrentPhase()
-      })
+      body: JSON.stringify({ message: userText, phase: getCurrentPhase() })
     });
 
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    removeThinking();
-    printChatLine(_chatOutput, data.reply, "maggie");
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE 라인 파싱
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // 미완성 라인은 버퍼에 보관
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = JSON.parse(line.slice(6));
+        if (payload.token) {
+          replyDiv.textContent += payload.token;
+          _chatOutput.scrollTop = _chatOutput.scrollHeight;
+        }
+      }
+    }
+
+    // 응답이 비어있으면 폴백
+    if (!replyDiv.textContent.trim()) {
+      replyDiv.textContent = FALLBACK_RESPONSES[_fallbackIdx % FALLBACK_RESPONSES.length];
+      _fallbackIdx++;
+    }
 
   } catch (_err) {
-    removeThinking();
-    // 백엔드 미연결 폴백
-    const fallback = FALLBACK_RESPONSES[_fallbackIdx % FALLBACK_RESPONSES.length];
-    _fallbackIdx++;
-    printChatLine(_chatOutput, fallback, "maggie");
+    if (!replyDiv.textContent.trim()) {
+      replyDiv.textContent = FALLBACK_RESPONSES[_fallbackIdx % FALLBACK_RESPONSES.length];
+      _fallbackIdx++;
+    }
   }
 }
 
